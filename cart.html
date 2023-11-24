@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CART</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body style="background-color: antiquewhite;">
+    <!-- Navbar -->
+<nav class="navbar">
+    <div class="container">
+        <a href="#" class="logo"style="font-size: 30px;"><b>CART</b></a>
+        <ul class="nav-list">
+            <li><a href=index.html onclick="showHomePage()">Home</a></li>
+            <li><a href="categories.html" onclick="showCart()">CATEGORIES</a></li>
+            
+            <li><a href="payment.html" onclick="showpayment()">PAYMENT</a></li>
+            <li><a href="contact.html" onclick="showContactUs()">CONTACT US</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Book Display Section -->
+<section class="book-section">
+    <div class="container" id="book-container">
+        <!-- Books will be dynamically loaded here using JavaScript -->
+    </div>
+</section>
+
+<!-- Cart Section -->
+<section class="cart-section">
+    <div class="container" id="cart-container">
+        <!-- Cart items will be dynamically loaded here using JavaScript -->
+    </div>
+    <div class="total-section">
+        <p>Total Amount: $<span id="total-amount">0.00</span></p>
+        <button type="button" class="btn btn-primary" onclick="proceedToPayment()">Proceed to Payment</button>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    // Fetch book details and populate the book section
+    fetch('books.json')
+        .then(response => response.json())
+        .then(data => {
+            const bookContainer = document.getElementById('book-container');
+
+            // Display books
+            data.forEach(book => {
+                const bookCard = createBookCard(book);
+                bookContainer.appendChild(bookCard);
+            });
+        })
+        .catch(error => console.error('Error fetching book details:', error));
+
+    // Fetch and display cart items
+    showCartItems();
+});
+
+// Function to create a book card
+function createBookCard(book) {
+    const bookCard = document.createElement('div');
+    bookCard.classList.add('book-card');
+
+    const image = document.createElement('img');
+    image.src = book.cover_image;
+    image.alt = book.title;
+
+    const title = document.createElement('h3');
+    title.textContent = book.title;
+
+    const author = document.createElement('p');
+    author.textContent = `Author: ${book.author}`;
+
+    const price = document.createElement('p');
+    price.textContent = `Price: $${book.price}`;
+    
+    const addToCartButton = document.createElement('button');
+    addToCartButton.textContent = 'Add to Cart';
+    addToCartButton.addEventListener('click', () => addToCart(book));
+
+    bookCard.appendChild(image);
+    bookCard.appendChild(title);
+    bookCard.appendChild(author);
+    bookCard.appendChild(price);
+    bookCard.appendChild(addToCartButton);
+
+    return bookCard;
+}
+
+// Function to fetch and display cart items
+function showCartItems() {
+    const cartContainer = document.getElementById('cart-container');
+    const cartItems = getCartItemsFromLocalStorage(); // Assume a function to get cart items
+
+    // Display cart items
+    cartItems.forEach(cartItem => {
+        const cartItemElement = createCartItemElement(cartItem);
+        cartContainer.appendChild(cartItemElement);
+    });
+
+    // Calculate and update the total amount
+    updateTotalAmount();
+}
+
+// Function to create a cart item element
+function createCartItemElement(cartItem) {
+    const cartItemElement = document.createElement('div');
+    cartItemElement.classList.add('cart-item');
+
+    const title = document.createElement('p');
+    title.textContent = cartItem.title;
+
+    const quantityLabel = document.createElement('label');
+    quantityLabel.textContent = 'Quantity:';
+    const quantityInput = document.createElement('input');
+    quantityInput.type = 'number';
+    quantityInput.value = cartItem.quantity;
+    quantityInput.addEventListener('change', () => adjustQuantity(cartItem.id, quantityInput.value));
+
+    const price = document.createElement('p');
+    price.textContent = `Price: $${cartItem.price}`;
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = 'Remove';
+    removeButton.addEventListener('click', () => removeItem(cartItem.id));
+
+    cartItemElement.appendChild(title);
+    cartItemElement.appendChild(quantityLabel);
+    cartItemElement.appendChild(quantityInput);
+    cartItemElement.appendChild(price);
+    cartItemElement.appendChild(removeButton);
+
+    return cartItemElement;
+}
+
+// Function to add a book to the cart
+function addToCart(book) {
+    const cartItems = getCartItemsFromLocalStorage();
+    const existingCartItem = cartItems.find(item => item.id === book.id);
+
+    if (existingCartItem) {
+        existingCartItem.quantity += 1;
+    } else {
+        const newCartItem = {
+            id: book.id,
+            title: book.title,
+            quantity: 1,
+            price: book.price,
+        };
+        cartItems.push(newCartItem);
+    }
+
+    // Save the updated cart items to local storage
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+
+    // Refresh the cart display
+    const cartContainer = document.getElementById('cart-container');
+    cartContainer.innerHTML = '';
+    showCartItems();
+}
+
+// Function to adjust quantity in the cart
+function adjustQuantity(cartItemId, quantity) {
+    const cartItems = getCartItemsFromLocalStorage();
+    const cartItem = cartItems.find(item => item.id === cartItemId);
+
+    if (cartItem) {
+        cartItem.quantity = parseInt(quantity);
+        // Save the updated cart items to local storage
+        localStorage.setItem('cartItems', JSON.stringify(cartItems));
+
+        // Refresh the cart display
+        const cartContainer = document.getElementById('cart-container');
+        cartContainer.innerHTML = '';
+        showCartItems();
+
+        // Calculate and update the total amount
+        updateTotalAmount();
+    }
+}
+
+// Function to remove item from the cart
+function removeItem(cartItemId) {
+    const cartItems = getCartItemsFromLocalStorage();
+    const updatedCartItems = cartItems.filter(item => item.id !== cartItemId);
+
+    // Save the updated cart items to local storage
+    localStorage.setItem('cartItems', JSON.stringify(updatedCartItems));
+
+    // Refresh the cart display
+    const cartContainer = document.getElementById('cart-container');
+    cartContainer.innerHTML = '';
+    showCartItems();
+
+    // Calculate and update the total amount
+    updateTotalAmount();
+}
+
+// Function to update the total amount in the cart
+function updateTotalAmount() {
+    const cartItems = getCartItemsFromLocalStorage();
+    let totalAmount = 0;
+
+    cartItems.forEach(cartItem => {
+        totalAmount += cartItem.price * cartItem.quantity;
+    });
+
+    // Update the total amount in the UI
+    document.getElementById('total-amount').textContent = totalAmount.toFixed(2);
+}
+
+// Function to proceed to payment
+function proceedToPayment() {
+    // Implement your logic to navigate to the payment page
+    console.log('Proceeding to payment');
+}
+
+// Your existing functions for book-related actions (showHomePage, showContactUs, etc.) go here
+
+// Helper function to get cart items from local storage
+function getCartItemsFromLocalStorage() {
+    const storedItems = localStorage.getItem('cartItems');
+    return storedItems ? JSON.parse(storedItems) : [];
+}
+
+</script>
+</body>
+</html>
